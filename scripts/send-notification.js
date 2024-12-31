@@ -3,8 +3,13 @@ const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
 async function sendEmail({ subject, body, to }) {
   const client = new SESClient({ region: "us-east-1" });
 
+  // Ensure the Source email has a domain
+  const sourceEmail = process.env.AWS_SMTP_USERNAME.includes('@') 
+    ? process.env.AWS_SMTP_USERNAME 
+    : `${process.env.AWS_SMTP_USERNAME}@lagomo.xyz`;
+
   const params = {
-    Source: process.env.AWS_SMTP_USERNAME,
+    Source: sourceEmail,
     Destination: {
       ToAddresses: [to],
     },
