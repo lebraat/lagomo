@@ -24,6 +24,7 @@ jobs:
       id-token: write
     env:
       AWS_SMTP_USERNAME: ${{ vars.AWS_SMTP_USERNAME }}
+      AWS_SMTP_PASSWORD: ${{ secrets.AWS_SMTP_PASSWORD }}
       NOTIFICATION_EMAIL: ${{ vars.NOTIFICATION_EMAIL }}
     
     steps:
@@ -57,8 +58,8 @@ jobs:
 
       - name: Debug Secrets
         env:
-          AWS_SMTP_USERNAME: ${{ secrets.AWS_SMTP_USERNAME }}
-          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+          AWS_SMTP_USERNAME: ${{ vars.AWS_SMTP_USERNAME }}
+          NOTIFICATION_EMAIL: ${{ vars.NOTIFICATION_EMAIL }}
         run: |
           echo "Checking required secrets..."
           [[ -n "$AWS_SMTP_USERNAME" ]] && echo "AWS_SMTP_USERNAME is set" || echo "AWS_SMTP_USERNAME is missing"
@@ -111,7 +112,7 @@ jobs:
         if: fromJson(steps.workflow-details.outputs.result).branch == 'main'
         env:
           DETAILS: ${{ steps.workflow-details.outputs.result }}
-          AWS_SMTP_USERNAME: ${{ secrets.AWS_SMTP_USERNAME }}
+          AWS_SMTP_USERNAME: ${{ vars.AWS_SMTP_USERNAME }}
         run: |
           DETAILS_JSON='${{ steps.workflow-details.outputs.result }}'
           BRANCH=$(echo "$DETAILS_JSON" | jq -r '.branch')
@@ -145,7 +146,7 @@ jobs:
         if: contains(fromJson(steps.workflow-details.outputs.result).failed_jobs, 'Test Coverage:')
         env:
           DETAILS: ${{ steps.workflow-details.outputs.result }}
-          AWS_SMTP_USERNAME: ${{ secrets.AWS_SMTP_USERNAME }}
+          AWS_SMTP_USERNAME: ${{ vars.AWS_SMTP_USERNAME }}
         run: |
           DETAILS_JSON='${{ steps.workflow-details.outputs.result }}'
           BRANCH=$(echo "$DETAILS_JSON" | jq -r '.branch')
@@ -169,5 +170,39 @@ jobs:
 
           node scripts/send-notification.js \
             "[DEV] Test Coverage Below Threshold - Lagomo" \
+            "$BODY" \
+            "${{ secrets.NOTIFICATION_EMAIL }}"
+
+      - name: Send test notification
+        if: contains(fromJson(steps.workflow-details.outputs.result).failed_jobs, 'Test:')
+        env:
+          DETAILS: ${{ steps.workflow-details.outputs.result }}
+          AWS_SMTP_USERNAME: ${{ vars.AWS_SMTP_USERNAME }}
+        run: |
+          DETAILS_JSON='${{ steps.workflow-details.outputs.result }}'
+          BRANCH=$(echo "$DETAILS_JSON" | jq -r '.branch')
+          COMMIT=$(echo "$DETAILS_JSON" | jq -r '.commit_message')
+          AUTHOR=$(echo "$DETAILS_JSON" | jq -r '.author')
+          FAILED_JOBS=$(echo "$DETAILS_JSON" | jq -r '.failed_jobs')
+          RUN_URL=$(echo "$DETAILS_JSON" | jq -r '.run_url')
+
+          BODY="⚠️ [DEV] Tests Failed
+
+          A test failure has occurred.
+
+          ## Failure Details
+          - Branch: $BRANCH
+          - Commit Message: $COMMIT
+          - Author: $AUTHOR
+          - Failed Jobs:
+          $FAILED_JOBS
+
+          ## Action Required
+          Please investigate and fix the failing tests as soon as possible.
+
+          View Workflow Run: $RUN_URL"
+
+          node scripts/send-notification.js \
+            "[DEV] Tests Failed - Lagomo" \
             "$BODY" \
             "${{ secrets.NOTIFICATION_EMAIL }}"
