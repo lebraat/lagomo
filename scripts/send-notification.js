@@ -1,10 +1,10 @@
 const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
 
 async function sendEmail({ subject, body, to }) {
-  const client = new SESClient({ region: "us-west-2" });
+  const client = new SESClient({ region: "us-east-1" });
 
   const params = {
-    Source: "no-reply@lagomo.xyz",
+    Source: process.env.AWS_SMTP_USERNAME,
     Destination: {
       ToAddresses: [to],
     },
