@@ -76,13 +76,13 @@ jobs:
         if: fromJson(steps.workflow-details.outputs.result).branch == 'main'
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
+          server_address: email-smtp.us-west-2.amazonaws.com
+          server_port: 587
+          username: ${{ secrets.AWS_SMTP_USERNAME }}
+          password: ${{ secrets.AWS_SMTP_PASSWORD }}
           subject: "[CRITICAL] Tests Failed on Main Branch - Lagomo"
           to: ${{ secrets.NOTIFICATION_EMAIL }}
-          from: "Lagomo CI <${{ secrets.SMTP_USERNAME }}>"
+          from: "Lagomo CI <no-reply@lagomo.xyz>"
           priority: high
           secure: true
           convert_markdown: true
@@ -139,13 +139,13 @@ jobs:
         if: contains(fromJson(steps.workflow-details.outputs.result).failed_jobs, 'Test Coverage:')
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
+          server_address: email-smtp.us-west-2.amazonaws.com
+          server_port: 587
+          username: ${{ secrets.AWS_SMTP_USERNAME }}
+          password: ${{ secrets.AWS_SMTP_PASSWORD }}
           subject: "[WARNING] Test Coverage Below Threshold - Lagomo"
           to: ${{ secrets.NOTIFICATION_EMAIL }}
-          from: "Lagomo CI <${{ secrets.SMTP_USERNAME }}>"
+          from: "Lagomo CI <no-reply@lagomo.xyz>"
           priority: normal
           secure: true
           convert_markdown: true
