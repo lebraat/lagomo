@@ -107,16 +107,15 @@ aws secretsmanager create-secret \
     }'
 ```
 
-#### SMTP Credentials
+#### AWS SES Configuration
 ```bash
 aws secretsmanager create-secret \
-    --name "/lagomo/production/smtp/credentials" \
-    --description "SMTP server credentials" \
+    --name "/lagomo/production/ses/config" \
+    --description "AWS SES configuration" \
     --secret-string '{
-        "host": "smtp.gmail.com",
-        "port": "587",
-        "username": "your-email@gmail.com",
-        "password": "your-app-specific-password"
+        "region": "us-east-1",
+        "fromEmail": "gucci@lagomo.xyz",
+        "toEmail": "gucci@lagomo.xyz"
     }'
 ```
 

@@ -4,34 +4,30 @@ Welcome to the Lagomo documentation! This directory contains comprehensive docum
 
 ## Table of Contents
 
-1. [Architecture](./architecture/README.md)
+1. [Architecture](./architecture/)
    - [System Overview](./architecture/system-overview.md)
    - [Database Schema](./architecture/database-schema.md)
-   - [Authentication Flow](./architecture/auth-flow.md)
 
-2. [API Documentation](./api/README.md)
+2. [API Documentation](./api/)
    - [Authentication](./api/auth.md)
-   - [Time Tracking](./api/time-tracking.md)
-   - [User Management](./api/users.md)
 
-3. [Development](./development/README.md)
+3. [Development](./development/)
    - [Setup Guide](./development/setup.md)
    - [Environment Variables](./development/environment.md)
    - [Testing](./development/testing.md)
-   - [Deployment](./development/deployment.md)
+   - [Notifications](./development/notifications.md)
+   - [Updates](./development/updates.md)
+   - [Update Template](./development/update-template.md)
 
-4. [Features](./features/README.md)
-   - [Web3 Authentication](./features/web3-auth.md)
-   - [Time Modality Tracking](./features/time-modality.md)
-   - [Questionnaire System](./features/questionnaire.md)
+4. [Deployment](./deployment/)
+   - [AWS Setup Guide](./deployment/aws-setup-guide.md)
+   - [AWS Secrets Management](./deployment/aws-secrets.md)
 
-5. [Contributing](./contributing/README.md)
-   - [Code Style Guide](./contributing/code-style.md)
-   - [Pull Request Process](./contributing/pull-requests.md)
-   - [Development Workflow](./contributing/workflow.md)
+5. [Security](./security/)
+   - [Data Encryption](./security/data-encryption.md)
 
 ## Quick Links
 
 - [Main README](../README.md)
-- [API Reference](./api/README.md)
 - [Setup Guide](./development/setup.md)
+- [AWS Setup Guide](./deployment/aws-setup-guide.md)

@@ -33,6 +33,7 @@ A decentralized application for tracking and analyzing time allocation across di
 - [System Architecture](./docs/architecture/system-overview.md)
 - [Database Schema](./docs/architecture/database-schema.md)
 - [Development Setup](./docs/development/setup.md)
+- [Test Notifications](./docs/operations/notifications.md)
 
 ## Quick Start
 

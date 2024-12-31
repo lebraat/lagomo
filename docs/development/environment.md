@@ -57,19 +57,14 @@ TEST_JWT_SECRET=test-jwt-secret
 
 ### Email Notifications
 ```bash
-# SMTP Configuration
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-specific-password
-
-# Notification Recipients
-NOTIFICATION_EMAIL=team@example.com
-NOTIFICATION_EMAIL_DEV=dev-team@example.com
-NOTIFICATION_EMAIL_CRITICAL=critical@example.com
+# AWS SES Configuration
+AWS_REGION=us-east-1
+AWS_ROLE_ARN=arn:aws:iam::account:role/lagomo-github-actions
+SES_FROM_EMAIL=gucci@lagomo.xyz
+SES_TO_EMAIL=gucci@lagomo.xyz
 ```
 
-## Environment-Specific Variables
+### Environment-Specific Variables
 
 ### Development
 ```bash
@@ -77,6 +72,12 @@ NOTIFICATION_EMAIL_CRITICAL=critical@example.com
 DEBUG=true
 LOG_LEVEL=debug
 ENABLE_SWAGGER=true
+
+# AWS SES Configuration
+AWS_REGION=us-east-1
+AWS_ROLE_ARN=arn:aws:iam::account:role/lagomo-github-actions
+SES_FROM_EMAIL=gucci@lagomo.xyz
+SES_TO_EMAIL=gucci@lagomo.xyz
 ```
 
 ### Testing
@@ -111,12 +112,11 @@ NODE_ENV=development
 PORT=3000
 API_BASE_URL=http://localhost:3000
 
-# Email Notifications
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-specific-password
-NOTIFICATION_EMAIL=team@example.com
+# AWS SES Configuration
+AWS_REGION=us-east-1
+AWS_ROLE_ARN=arn:aws:iam::account:role/lagomo-github-actions
+SES_FROM_EMAIL=gucci@lagomo.xyz
+SES_TO_EMAIL=gucci@lagomo.xyz
 
 # Development Settings
 DEBUG=true
@@ -136,12 +136,9 @@ The following secrets should be set in your GitHub repository:
    - `WALLETCONNECT_PROJECT_ID`
    - `INFURA_PROJECT_ID`
 
-3. **Email Notifications**
-   - `SMTP_SERVER`
-   - `SMTP_PORT`
-   - `SMTP_USERNAME`
-   - `SMTP_PASSWORD`
-   - `NOTIFICATION_EMAIL`
+3. **AWS Configuration**
+   - `AWS_REGION`
+   - `AWS_ROLE_ARN`
 
 ## Setting Up Variables
 
