@@ -22,6 +22,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm install @aws-sdk/client-ses
+          sudo apt-get update && sudo apt-get install -y jq
+
       - name: Get workflow details
         uses: actions/github-script@v6
         id: workflow-details
@@ -52,94 +62,65 @@ jobs:
               run_url: context.payload.workflow_run.html_url
             };
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: npm install @aws-sdk/client-ses
-
       - name: Send critical notification
         if: fromJson(steps.workflow-details.outputs.result).branch == 'main'
+        env:
+          DETAILS: ${{ steps.workflow-details.outputs.result }}
         run: |
+          DETAILS_JSON='${{ steps.workflow-details.outputs.result }}'
+          BRANCH=$(echo "$DETAILS_JSON" | jq -r '.branch')
+          COMMIT=$(echo "$DETAILS_JSON" | jq -r '.commit_message')
+          AUTHOR=$(echo "$DETAILS_JSON" | jq -r '.author')
+          FAILED_JOBS=$(echo "$DETAILS_JSON" | jq -r '.failed_jobs')
+          RUN_URL=$(echo "$DETAILS_JSON" | jq -r '.run_url')
+
           BODY="⚠️ CRITICAL: Tests Failed on Main Branch
 
           A test failure has occurred on the main branch.
 
           ## Failure Details
-          - Branch: ${{ fromJson(steps.workflow-details.outputs.result).branch }}
-          - Commit Message: ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
-          - Author: ${{ fromJson(steps.workflow-details.outputs.result).author }}
+          - Branch: $BRANCH
+          - Commit Message: $COMMIT
+          - Author: $AUTHOR
           - Failed Jobs:
-          ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
+          $FAILED_JOBS
 
           ## Action Required
           Please investigate and fix the failing tests as soon as possible.
 
-          View Workflow Run: ${{ fromJson(steps.workflow-details.outputs.result).run_url }}"
+          View Workflow Run: $RUN_URL"
 
           node scripts/send-notification.js \
             "[CRITICAL] Tests Failed on Main Branch - Lagomo" \
             "$BODY" \
             "${{ secrets.NOTIFICATION_EMAIL }}"
 
-      - name: Send PR notification
-        if: fromJson(steps.workflow-details.outputs.result).branch != 'main'
-        run: |
-          BODY="# ❌ Tests Failed on PR Branch
-
-          ## Details
-          - Branch: ${{ fromJson(steps.workflow-details.outputs.result).branch }}
-          - Commit: ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
-          - Author: ${{ fromJson(steps.workflow-details.outputs.result).author }}
-
-          ## Failed Jobs
-          ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
-
-          View Workflow Run: ${{ fromJson(steps.workflow-details.outputs.result).run_url }}"
-
-          node scripts/send-notification.js \
-            "[CI] Tests Failed on PR Branch - Lagomo" \
-            "$BODY" \
-            "${{ fromJson(steps.workflow-details.outputs.result).author_email }}"
-
       - name: Send coverage notification
         if: contains(fromJson(steps.workflow-details.outputs.result).failed_jobs, 'Test Coverage:')
+        env:
+          DETAILS: ${{ steps.workflow-details.outputs.result }}
         run: |
+          DETAILS_JSON='${{ steps.workflow-details.outputs.result }}'
+          BRANCH=$(echo "$DETAILS_JSON" | jq -r '.branch')
+          COMMIT=$(echo "$DETAILS_JSON" | jq -r '.commit_message')
+          AUTHOR=$(echo "$DETAILS_JSON" | jq -r '.author')
+          RUN_URL=$(echo "$DETAILS_JSON" | jq -r '.run_url')
+
           BODY="⚠️ Test Coverage Alert
 
           The test coverage has fallen below the required threshold.
 
           ## Details
-          - Branch: ${{ fromJson(steps.workflow-details.outputs.result).branch }}
-          - Commit Message: ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
-          - Author: ${{ fromJson(steps.workflow-details.outputs.result).author }}
+          - Branch: $BRANCH
+          - Commit Message: $COMMIT
+          - Author: $AUTHOR
 
           ## Action Required
           Please add more tests to improve coverage.
 
-          View Workflow Run: ${{ fromJson(steps.workflow-details.outputs.result).run_url }}"
+          View Workflow Run: $RUN_URL"
 
           node scripts/send-notification.js \
             "[WARNING] Test Coverage Below Threshold - Lagomo" \
-            "$BODY" \
-            "${{ secrets.NOTIFICATION_EMAIL }}"
-
-      - name: Send nightly build notification
-        if: github.event.workflow_run.head_branch == 'main' && contains(github.event.workflow_run.display_title, 'nightly')
-        run: |
-          BODY="# 🌙 Nightly Build Tests Failed
-
-          ## Details
-          - Branch: ${{ fromJson(steps.workflow-details.outputs.result).branch }}
-
-          ## Failed Jobs
-          ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
-
-          View Workflow Run: ${{ fromJson(steps.workflow-details.outputs.result).run_url }}"
-
-          node scripts/send-notification.js \
-            "[NIGHTLY] Build Tests Failed - Lagomo" \
             "$BODY" \
             "${{ secrets.NOTIFICATION_EMAIL }}"
