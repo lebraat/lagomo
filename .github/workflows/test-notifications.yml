@@ -24,7 +24,7 @@ jobs:
     
     env:
       AWS_SMTP_USERNAME: ${{ vars.AWS_SMTP_USERNAME }}
-      NOTIFICATION_EMAIL: ${{ vars.NOTIFICATION_EMAIL }}
+      NOTIFICATION_EMAIL: "gucci@lagomo.xyz"
       AWS_SMTP_PASSWORD: ${{ secrets.AWS_SMTP_PASSWORD }}
 
     steps:
