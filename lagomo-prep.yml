@@ -1,0 +1,20 @@
+Coding language:
+    - Backend / Server-Side Development: 
+        - Node
+        - Next.js
+    - Smart Contract Development: 
+        - Solidity
+    - Frontend / Client-Side Development:
+        - Next.js
+        - React
+    - Web3 Libraries:
+        - ethers.js
+        - wagmi
+        - hardhat
+        - WalletConnect            
+
+Blockchain:
+    - Optimism
+        - ChainId: 10
+    - Optimism Sepolia
+        - ChainId: 11155420

@@ -1,0 +1,155 @@
+name: Test Notifications
+
+on:
+  workflow_run:
+    workflows: ["Test Suite"]
+    types:
+      - completed
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'success'
+    
+    steps:
+      - name: Get workflow details
+        uses: actions/github-script@v6
+        id: workflow-details
+        with:
+          script: |
+            const run = await github.rest.actions.getWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id
+            });
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id
+            });
+            
+            let failedJobs = jobs.data.jobs.filter(job => job.conclusion === 'failure');
+            let failureDetails = failedJobs.map(job => {
+              return `${job.name}: ${job.steps.filter(step => step.conclusion === 'failure').map(step => step.name).join(', ')}`;
+            }).join('\n');
+            
+            return {
+              branch: run.data.head_branch,
+              commit_message: run.data.head_commit.message,
+              author: run.data.head_commit.author.name,
+              author_email: run.data.head_commit.author.email,
+              failed_jobs: failureDetails,
+              run_url: context.payload.workflow_run.html_url
+            };
+
+      - name: Send critical notification
+        if: fromJson(steps.workflow-details.outputs.result).branch == 'main'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CRITICAL] Tests Failed on Main Branch - Lagomo"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: "Lagomo CI <${{ secrets.SMTP_USERNAME }}>"
+          priority: high
+          secure: true
+          convert_markdown: true
+          body: |
+            # ⚠️ CRITICAL: Tests Failed on Main Branch
+
+            ## Details
+            - **Branch:** main
+            - **Commit:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
+            - **Author:** ${{ fromJson(steps.workflow-details.outputs.result).author }}
+
+            ## Failed Jobs
+            ```
+            ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
+            ```
+
+            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
+
+            > ⚠️ This is a critical failure on the main branch and requires immediate attention.
+
+      - name: Send PR notification
+        if: fromJson(steps.workflow-details.outputs.result).branch != 'main'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CI] Tests Failed on PR Branch - Lagomo"
+          to: ${{ fromJson(steps.workflow-details.outputs.result).author_email }}
+          cc: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: "Lagomo CI <${{ secrets.SMTP_USERNAME }}>"
+          secure: true
+          convert_markdown: true
+          body: |
+            # ❌ Tests Failed on PR Branch
+
+            ## Details
+            - **Branch:** ${{ fromJson(steps.workflow-details.outputs.result).branch }}
+            - **Commit:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
+            - **Author:** ${{ fromJson(steps.workflow-details.outputs.result).author }}
+
+            ## Failed Jobs
+            ```
+            ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
+            ```
+
+            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
+
+      - name: Send coverage notification
+        if: contains(fromJson(steps.workflow-details.outputs.result).failed_jobs, 'Test Coverage:')
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CI] Code Coverage Below Threshold - Lagomo"
+          to: ${{ fromJson(steps.workflow-details.outputs.result).author_email }}
+          cc: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: "Lagomo CI <${{ secrets.SMTP_USERNAME }}>"
+          secure: true
+          convert_markdown: true
+          body: |
+            # 📊 Code Coverage Below Threshold
+
+            ## Details
+            - **Branch:** ${{ fromJson(steps.workflow-details.outputs.result).branch }}
+            - **Commit:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
+            - **Author:** ${{ fromJson(steps.workflow-details.outputs.result).author }}
+
+            > Please review the coverage report and add necessary tests to improve coverage.
+
+            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
+
+      - name: Send nightly build notification
+        if: github.event.workflow_run.head_branch == 'main' && contains(github.event.workflow_run.display_title, 'nightly')
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[NIGHTLY] Build Tests Failed - Lagomo"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: "Lagomo CI <${{ secrets.SMTP_USERNAME }}>"
+          secure: true
+          convert_markdown: true
+          body: |
+            # 🌙 Nightly Build Tests Failed
+
+            ## Details
+            - **Branch:** ${{ fromJson(steps.workflow-details.outputs.result).branch }}
+
+            ## Failed Jobs
+            ```
+            ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
+            ```
+
+            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
