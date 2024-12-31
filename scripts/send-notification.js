@@ -1,34 +1,30 @@
-const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
+const nodemailer = require('nodemailer');
 
 async function sendEmail({ subject, body, to }) {
-  const client = new SESClient({ region: "us-east-1" });
+  // Create SMTP transporter
+  const transporter = nodemailer.createTransport({
+    host: 'email-smtp.us-east-1.amazonaws.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.AWS_SMTP_USERNAME,
+      pass: process.env.AWS_SMTP_PASSWORD
+    }
+  });
 
   // Ensure the Source email has a domain
   const sourceEmail = process.env.AWS_SMTP_USERNAME.includes('@') 
     ? process.env.AWS_SMTP_USERNAME 
     : `${process.env.AWS_SMTP_USERNAME}@lagomo.xyz`;
 
-  const params = {
-    Source: sourceEmail,
-    Destination: {
-      ToAddresses: [to],
-    },
-    Message: {
-      Subject: {
-        Data: subject,
-      },
-      Body: {
-        Text: {
-          Data: body,
-        },
-      },
-    },
-  };
-
   try {
-    const command = new SendEmailCommand(params);
-    const response = await client.send(command);
-    console.log("Email sent successfully:", response.MessageId);
+    const info = await transporter.sendMail({
+      from: sourceEmail,
+      to: to,
+      subject: subject,
+      text: body,
+    });
+    console.log("Email sent successfully:", info.messageId);
   } catch (error) {
     console.error("Error sending email:", error);
     process.exit(1);

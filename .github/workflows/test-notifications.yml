@@ -59,8 +59,11 @@ jobs:
       - name: Debug Secrets
         run: |
           echo "Checking required secrets..."
-          [[ -n "$AWS_SMTP_USERNAME" ]] && echo "AWS_SMTP_USERNAME is set" || echo "AWS_SMTP_USERNAME is missing"
-          [[ -n "$NOTIFICATION_EMAIL" ]] && echo "NOTIFICATION_EMAIL is set" || echo "NOTIFICATION_EMAIL is missing"
+          [[ -n "$AWS_SMTP_USERNAME" ]] && echo "AWS_SMTP_USERNAME is set to: ${AWS_SMTP_USERNAME}" || echo "AWS_SMTP_USERNAME is missing"
+          [[ -n "$NOTIFICATION_EMAIL" ]] && echo "NOTIFICATION_EMAIL is set to: ${NOTIFICATION_EMAIL}" || echo "NOTIFICATION_EMAIL is missing"
+          echo "AWS Region: ${AWS_REGION}"
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -72,7 +75,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install @aws-sdk/client-ses
+          npm install nodemailer
           sudo apt-get update && sudo apt-get install -y jq
 
       - name: Get workflow details
