@@ -95,23 +95,7 @@ jobs:
                   },
                   Body: {
                     Text: {
-                      Data: `
-⚠️ Test Failure Alert
-
-A test failure has occurred.
-
-## Failure Details
-- Branch: ${process.env.BRANCH}
-- Commit Message: ${process.env.COMMIT}
-- Author: ${process.env.AUTHOR}
-- Failed Jobs:
-${process.env.FAILED_JOBS}
-
-## Action Required
-Please investigate and fix the failing tests.
-
-View Workflow Run: ${process.env.RUN_URL}
-                      `,
+                      Data: `⚠️ Test Failure Alert\n\nA test failure has occurred.\n\n## Failure Details\n- Branch: ${process.env.BRANCH}\n- Commit Message: ${process.env.COMMIT}\n- Author: ${process.env.AUTHOR}\n- Failed Jobs:\n${process.env.FAILED_JOBS}\n\n## Action Required\nPlease investigate and fix the failing tests.\n\nView Workflow Run: ${process.env.RUN_URL}`
                     },
                   },
                 },
