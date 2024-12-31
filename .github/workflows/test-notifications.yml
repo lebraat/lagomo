@@ -86,7 +86,6 @@ jobs:
           priority: high
           secure: true
           convert_markdown: true
-          tls: true
           ignore_cert: true
           body: |
             # ⚠️ CRITICAL: Tests Failed on Main Branch
@@ -150,7 +149,6 @@ jobs:
           priority: normal
           secure: true
           convert_markdown: true
-          tls: true
           ignore_cert: true
           body: |
             # ⚠️ Test Coverage Alert
