@@ -12,6 +12,13 @@ jobs:
     if: github.event.workflow_run.conclusion != 'success'
     
     steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
       - name: Get workflow details
         uses: actions/github-script@v6
         id: workflow-details
@@ -42,6 +49,29 @@ jobs:
               run_url: context.payload.workflow_run.html_url
             };
 
+      - name: Debug Secrets
+        run: |
+          if [ -n "${{ secrets.SMTP_SERVER }}" ]; then
+            echo "SMTP_SERVER is set"
+          else
+            echo "SMTP_SERVER is not set"
+          fi
+          if [ -n "${{ secrets.SMTP_PORT }}" ]; then
+            echo "SMTP_PORT is set"
+          else
+            echo "SMTP_PORT is not set"
+          fi
+          if [ -n "${{ secrets.SMTP_USERNAME }}" ]; then
+            echo "SMTP_USERNAME is set"
+          else
+            echo "SMTP_USERNAME is not set"
+          fi
+          if [ -n "${{ secrets.NOTIFICATION_EMAIL }}" ]; then
+            echo "NOTIFICATION_EMAIL is set"
+          else
+            echo "NOTIFICATION_EMAIL is not set"
+          fi
+
       - name: Send critical notification
         if: fromJson(steps.workflow-details.outputs.result).branch == 'main'
         uses: dawidd6/action-send-mail@v3
@@ -59,19 +89,21 @@ jobs:
           body: |
             # ⚠️ CRITICAL: Tests Failed on Main Branch
 
-            ## Details
-            - **Branch:** main
-            - **Commit:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
-            - **Author:** ${{ fromJson(steps.workflow-details.outputs.result).author }}
+            A test failure has occurred on the main branch.
 
-            ## Failed Jobs
+            ## Failure Details
+            - **Branch:** ${{ fromJson(steps.workflow-details.outputs.result).branch }}
+            - **Commit Message:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
+            - **Author:** ${{ fromJson(steps.workflow-details.outputs.result).author }}
+            - **Failed Jobs:**
             ```
             ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
             ```
 
-            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
+            ## Action Required
+            Please investigate and fix the failing tests as soon as possible.
 
-            > ⚠️ This is a critical failure on the main branch and requires immediate attention.
+            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
 
       - name: Send PR notification
         if: fromJson(steps.workflow-details.outputs.result).branch != 'main'
@@ -110,21 +142,24 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "[CI] Code Coverage Below Threshold - Lagomo"
-          to: ${{ fromJson(steps.workflow-details.outputs.result).author_email }}
-          cc: ${{ secrets.NOTIFICATION_EMAIL }}
+          subject: "[WARNING] Test Coverage Below Threshold - Lagomo"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
           from: "Lagomo CI <${{ secrets.SMTP_USERNAME }}>"
+          priority: normal
           secure: true
           convert_markdown: true
           body: |
-            # 📊 Code Coverage Below Threshold
+            # ⚠️ Test Coverage Alert
+
+            The test coverage has fallen below the required threshold.
 
             ## Details
             - **Branch:** ${{ fromJson(steps.workflow-details.outputs.result).branch }}
-            - **Commit:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
+            - **Commit Message:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
             - **Author:** ${{ fromJson(steps.workflow-details.outputs.result).author }}
 
-            > Please review the coverage report and add necessary tests to improve coverage.
+            ## Action Required
+            Please add more tests to improve coverage.
 
             [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
 
