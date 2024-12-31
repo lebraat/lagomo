@@ -6,10 +6,16 @@ on:
     types:
       - completed
 
+permissions:
+  contents: read
+  actions: read
+  checks: read
+
 jobs:
   notify:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion != 'success'
+    environment: development
     
     steps:
       - name: Debug Secrets
@@ -85,7 +91,7 @@ jobs:
           FAILED_JOBS=$(echo "$DETAILS_JSON" | jq -r '.failed_jobs')
           RUN_URL=$(echo "$DETAILS_JSON" | jq -r '.run_url')
 
-          BODY="⚠️ CRITICAL: Tests Failed on Main Branch
+          BODY="⚠️ [DEV] Tests Failed on Main Branch
 
           A test failure has occurred on the main branch.
 
@@ -102,7 +108,7 @@ jobs:
           View Workflow Run: $RUN_URL"
 
           node scripts/send-notification.js \
-            "[CRITICAL] Tests Failed on Main Branch - Lagomo" \
+            "[DEV] Tests Failed on Main Branch - Lagomo" \
             "$BODY" \
             "${{ secrets.NOTIFICATION_EMAIL }}"
 
@@ -120,7 +126,7 @@ jobs:
           AUTHOR=$(echo "$DETAILS_JSON" | jq -r '.author')
           RUN_URL=$(echo "$DETAILS_JSON" | jq -r '.run_url')
 
-          BODY="⚠️ Test Coverage Alert
+          BODY="⚠️ [DEV] Test Coverage Alert
 
           The test coverage has fallen below the required threshold.
 
@@ -135,6 +141,6 @@ jobs:
           View Workflow Run: $RUN_URL"
 
           node scripts/send-notification.js \
-            "[WARNING] Test Coverage Below Threshold - Lagomo" \
+            "[DEV] Test Coverage Below Threshold - Lagomo" \
             "$BODY" \
             "${{ secrets.NOTIFICATION_EMAIL }}"
