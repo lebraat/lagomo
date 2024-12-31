@@ -19,28 +19,45 @@ jobs:
     environment: development
     
     steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::266654255232:role/github-actions-ses-role
+          aws-region: us-east-1
+
+      # First, get the secrets from the triggering workflow
+      - name: Download workflow artifact
+        uses: actions/github-script@v6
+        id: download
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            const matchArtifact = artifacts.data.artifacts.find((artifact) => {
+              return artifact.name == "workflow-data"
+            });
+            if (!matchArtifact) return;
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchArtifact.id,
+              archive_format: 'zip',
+            });
+
       - name: Debug Secrets
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_SMTP_USERNAME: ${{ secrets.AWS_SMTP_USERNAME }}
           NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
         run: |
           echo "Checking required secrets..."
-          [[ -n "$AWS_ACCESS_KEY_ID" ]] && echo "AWS_ACCESS_KEY_ID is set" || echo "AWS_ACCESS_KEY_ID is missing"
-          [[ -n "$AWS_SECRET_ACCESS_KEY" ]] && echo "AWS_SECRET_ACCESS_KEY is set" || echo "AWS_SECRET_ACCESS_KEY is missing"
           [[ -n "$AWS_SMTP_USERNAME" ]] && echo "AWS_SMTP_USERNAME is set" || echo "AWS_SMTP_USERNAME is missing"
           [[ -n "$NOTIFICATION_EMAIL" ]] && echo "NOTIFICATION_EMAIL is set" || echo "NOTIFICATION_EMAIL is missing"
 
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -87,8 +104,6 @@ jobs:
         env:
           DETAILS: ${{ steps.workflow-details.outputs.result }}
           AWS_SMTP_USERNAME: ${{ secrets.AWS_SMTP_USERNAME }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           DETAILS_JSON='${{ steps.workflow-details.outputs.result }}'
           BRANCH=$(echo "$DETAILS_JSON" | jq -r '.branch')
@@ -123,8 +138,6 @@ jobs:
         env:
           DETAILS: ${{ steps.workflow-details.outputs.result }}
           AWS_SMTP_USERNAME: ${{ secrets.AWS_SMTP_USERNAME }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           DETAILS_JSON='${{ steps.workflow-details.outputs.result }}'
           BRANCH=$(echo "$DETAILS_JSON" | jq -r '.branch')
