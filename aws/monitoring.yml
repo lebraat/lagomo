@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Lagomo Monitoring Stack'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - production
+      - staging
+      - development
+    Description: Environment for the monitoring stack
+
+Resources:
+  # Dashboard
+  MonitoringDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub Lagomo-${Environment}-Dashboard
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["Lagomo", "AwsErrors", "Service", "SecretsManager"],
+                  [".", ".", "Service", "CloudWatch"]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "AWS Service Errors"
+              }
+            },
+            {
+              "type": "metric",
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "metrics": [
+                  ["Lagomo", "AwsErrors", "ErrorCode", "AccessDenied"],
+                  [".", ".", "ErrorCode", "ThrottlingException"],
+                  [".", ".", "ErrorCode", "ResourceNotFoundException"]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Error Types"
+              }
+            }
+          ]
+        }
+
+  # Critical Error Alarm
+  CriticalErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub Lagomo-${Environment}-CriticalErrors
+      AlarmDescription: Alert on critical AWS errors
+      MetricName: AwsErrors
+      Namespace: Lagomo
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ErrorCode
+          Value: AccessDenied
+      AlarmActions:
+        - !Ref ErrorNotificationTopic
+      OKActions:
+        - !Ref ErrorNotificationTopic
+
+  # High Error Rate Alarm
+  HighErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub Lagomo-${Environment}-HighErrorRate
+      AlarmDescription: Alert on high error rate across all AWS services
+      MetricName: AwsErrors
+      Namespace: Lagomo
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref ErrorNotificationTopic
+      OKActions:
+        - !Ref ErrorNotificationTopic
+
+  # SNS Topic for Notifications
+  ErrorNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub Lagomo-${Environment}-Errors
+      DisplayName: 'Lagomo Error Notifications'
+
+  # Email Subscription
+  ErrorNotificationSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref ErrorNotificationTopic
+      Endpoint: gucci@lagomo.xyz
+
+Outputs:
+  DashboardUrl:
+    Description: URL for the CloudWatch Dashboard
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${MonitoringDashboard}
+  
+  NotificationTopicArn:
+    Description: ARN of the SNS notification topic
+    Value: !Ref ErrorNotificationTopic

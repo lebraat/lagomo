@@ -12,6 +12,9 @@ jobs:
     if: github.event.workflow_run.conclusion != 'success'
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -49,144 +52,94 @@ jobs:
               run_url: context.payload.workflow_run.html_url
             };
 
-      - name: Debug Secrets
-        run: |
-          if [ -n "${{ secrets.SMTP_SERVER }}" ]; then
-            echo "SMTP_SERVER is set"
-          else
-            echo "SMTP_SERVER is not set"
-          fi
-          if [ -n "${{ secrets.SMTP_PORT }}" ]; then
-            echo "SMTP_PORT is set"
-          else
-            echo "SMTP_PORT is not set"
-          fi
-          if [ -n "${{ secrets.SMTP_USERNAME }}" ]; then
-            echo "SMTP_USERNAME is set"
-          else
-            echo "SMTP_USERNAME is not set"
-          fi
-          if [ -n "${{ secrets.NOTIFICATION_EMAIL }}" ]; then
-            echo "NOTIFICATION_EMAIL is set"
-          else
-            echo "NOTIFICATION_EMAIL is not set"
-          fi
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install @aws-sdk/client-ses
 
       - name: Send critical notification
         if: fromJson(steps.workflow-details.outputs.result).branch == 'main'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: email-smtp.us-west-2.amazonaws.com
-          server_port: 587
-          username: ${{ secrets.AWS_SMTP_USERNAME }}
-          password: ${{ secrets.AWS_SMTP_PASSWORD }}
-          subject: "[CRITICAL] Tests Failed on Main Branch - Lagomo"
-          to: ${{ secrets.NOTIFICATION_EMAIL }}
-          from: "Lagomo CI <no-reply@lagomo.xyz>"
-          priority: high
-          secure: true
-          convert_markdown: true
-          ignore_cert: true
-          body: |
-            # ⚠️ CRITICAL: Tests Failed on Main Branch
+        run: |
+          BODY="⚠️ CRITICAL: Tests Failed on Main Branch
 
-            A test failure has occurred on the main branch.
+          A test failure has occurred on the main branch.
 
-            ## Failure Details
-            - **Branch:** ${{ fromJson(steps.workflow-details.outputs.result).branch }}
-            - **Commit Message:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
-            - **Author:** ${{ fromJson(steps.workflow-details.outputs.result).author }}
-            - **Failed Jobs:**
-            ```
-            ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
-            ```
+          ## Failure Details
+          - Branch: ${{ fromJson(steps.workflow-details.outputs.result).branch }}
+          - Commit Message: ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
+          - Author: ${{ fromJson(steps.workflow-details.outputs.result).author }}
+          - Failed Jobs:
+          ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
 
-            ## Action Required
-            Please investigate and fix the failing tests as soon as possible.
+          ## Action Required
+          Please investigate and fix the failing tests as soon as possible.
 
-            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
+          View Workflow Run: ${{ fromJson(steps.workflow-details.outputs.result).run_url }}"
+
+          node scripts/send-notification.js \
+            "[CRITICAL] Tests Failed on Main Branch - Lagomo" \
+            "$BODY" \
+            "${{ secrets.NOTIFICATION_EMAIL }}"
 
       - name: Send PR notification
         if: fromJson(steps.workflow-details.outputs.result).branch != 'main'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "[CI] Tests Failed on PR Branch - Lagomo"
-          to: ${{ fromJson(steps.workflow-details.outputs.result).author_email }}
-          cc: ${{ secrets.NOTIFICATION_EMAIL }}
-          from: "Lagomo CI <${{ secrets.SMTP_USERNAME }}>"
-          secure: true
-          convert_markdown: true
-          body: |
-            # ❌ Tests Failed on PR Branch
+        run: |
+          BODY="# ❌ Tests Failed on PR Branch
 
-            ## Details
-            - **Branch:** ${{ fromJson(steps.workflow-details.outputs.result).branch }}
-            - **Commit:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
-            - **Author:** ${{ fromJson(steps.workflow-details.outputs.result).author }}
+          ## Details
+          - Branch: ${{ fromJson(steps.workflow-details.outputs.result).branch }}
+          - Commit: ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
+          - Author: ${{ fromJson(steps.workflow-details.outputs.result).author }}
 
-            ## Failed Jobs
-            ```
-            ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
-            ```
+          ## Failed Jobs
+          ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
 
-            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
+          View Workflow Run: ${{ fromJson(steps.workflow-details.outputs.result).run_url }}"
+
+          node scripts/send-notification.js \
+            "[CI] Tests Failed on PR Branch - Lagomo" \
+            "$BODY" \
+            "${{ fromJson(steps.workflow-details.outputs.result).author_email }}"
 
       - name: Send coverage notification
         if: contains(fromJson(steps.workflow-details.outputs.result).failed_jobs, 'Test Coverage:')
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: email-smtp.us-west-2.amazonaws.com
-          server_port: 587
-          username: ${{ secrets.AWS_SMTP_USERNAME }}
-          password: ${{ secrets.AWS_SMTP_PASSWORD }}
-          subject: "[WARNING] Test Coverage Below Threshold - Lagomo"
-          to: ${{ secrets.NOTIFICATION_EMAIL }}
-          from: "Lagomo CI <no-reply@lagomo.xyz>"
-          priority: normal
-          secure: true
-          convert_markdown: true
-          ignore_cert: true
-          body: |
-            # ⚠️ Test Coverage Alert
+        run: |
+          BODY="⚠️ Test Coverage Alert
 
-            The test coverage has fallen below the required threshold.
+          The test coverage has fallen below the required threshold.
 
-            ## Details
-            - **Branch:** ${{ fromJson(steps.workflow-details.outputs.result).branch }}
-            - **Commit Message:** ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
-            - **Author:** ${{ fromJson(steps.workflow-details.outputs.result).author }}
+          ## Details
+          - Branch: ${{ fromJson(steps.workflow-details.outputs.result).branch }}
+          - Commit Message: ${{ fromJson(steps.workflow-details.outputs.result).commit_message }}
+          - Author: ${{ fromJson(steps.workflow-details.outputs.result).author }}
 
-            ## Action Required
-            Please add more tests to improve coverage.
+          ## Action Required
+          Please add more tests to improve coverage.
 
-            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
+          View Workflow Run: ${{ fromJson(steps.workflow-details.outputs.result).run_url }}"
+
+          node scripts/send-notification.js \
+            "[WARNING] Test Coverage Below Threshold - Lagomo" \
+            "$BODY" \
+            "${{ secrets.NOTIFICATION_EMAIL }}"
 
       - name: Send nightly build notification
         if: github.event.workflow_run.head_branch == 'main' && contains(github.event.workflow_run.display_title, 'nightly')
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          subject: "[NIGHTLY] Build Tests Failed - Lagomo"
-          to: ${{ secrets.NOTIFICATION_EMAIL }}
-          from: "Lagomo CI <${{ secrets.SMTP_USERNAME }}>"
-          secure: true
-          convert_markdown: true
-          body: |
-            # 🌙 Nightly Build Tests Failed
+        run: |
+          BODY="# 🌙 Nightly Build Tests Failed
 
-            ## Details
-            - **Branch:** ${{ fromJson(steps.workflow-details.outputs.result).branch }}
+          ## Details
+          - Branch: ${{ fromJson(steps.workflow-details.outputs.result).branch }}
 
-            ## Failed Jobs
-            ```
-            ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
-            ```
+          ## Failed Jobs
+          ${{ fromJson(steps.workflow-details.outputs.result).failed_jobs }}
 
-            [View Workflow Run](${{ fromJson(steps.workflow-details.outputs.result).run_url }})
+          View Workflow Run: ${{ fromJson(steps.workflow-details.outputs.result).run_url }}"
+
+          node scripts/send-notification.js \
+            "[NIGHTLY] Build Tests Failed - Lagomo" \
+            "$BODY" \
+            "${{ secrets.NOTIFICATION_EMAIL }}"

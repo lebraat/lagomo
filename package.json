@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
+    "dev:aws": "aws-vault exec lagomo -- npm run dev",
+    "start:aws": "aws-vault exec lagomo -- npm start",
     "test": "NODE_ENV=test mocha server/test/**/*.test.js --exit",
     "test:coverage": "NODE_ENV=test nyc mocha server/test/**/*.test.js --exit",
     "test:watch": "NODE_ENV=test mocha server/test/**/*.test.js --watch",

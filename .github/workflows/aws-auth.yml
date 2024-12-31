@@ -1,0 +1,28 @@
+name: AWS Authentication
+
+on:
+  workflow_call:
+    outputs:
+      aws-role:
+        description: "The AWS role that was assumed"
+        value: ${{ jobs.aws-auth.outputs.aws-role }}
+
+jobs:
+  aws-auth:
+    runs-on: ubuntu-latest
+    outputs:
+      aws-role: ${{ steps.aws-credentials.outputs.role-arn }}
+    
+    steps:
+      - name: Configure AWS credentials
+        id: aws-credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2 # Change this if you're using a different region
+          
+      - name: Verify AWS credentials
+        run: |
+          aws sts get-caller-identity
+          echo "AWS credentials configured successfully"
