@@ -16,54 +16,13 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion != 'success'
-    permissions:
-      contents: read
-      actions: read
-      checks: read
-      id-token: write
     
-    env:
-      AWS_SMTP_USERNAME: ${{ vars.AWS_SMTP_USERNAME }}
-      NOTIFICATION_EMAIL: "gucci@lagomo.xyz"
-      AWS_SMTP_PASSWORD: ${{ secrets.AWS_SMTP_PASSWORD }}
-
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::266654255232:role/github-actions-ses-role
           aws-region: us-east-1
-
-      # First, get the secrets from the triggering workflow
-      - name: Download workflow artifact
-        uses: actions/github-script@v6
-        id: download
-        with:
-          script: |
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: context.payload.workflow_run.id,
-            });
-            const matchArtifact = artifacts.data.artifacts.find((artifact) => {
-              return artifact.name == "workflow-data"
-            });
-            if (!matchArtifact) return;
-            const download = await github.rest.actions.downloadArtifact({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              artifact_id: matchArtifact.id,
-              archive_format: 'zip',
-            });
-
-      - name: Debug Secrets
-        run: |
-          echo "Checking required secrets..."
-          [[ -n "$AWS_SMTP_USERNAME" ]] && echo "AWS_SMTP_USERNAME is set to: ${AWS_SMTP_USERNAME}" || echo "AWS_SMTP_USERNAME is missing"
-          [[ -n "$NOTIFICATION_EMAIL" ]] && echo "NOTIFICATION_EMAIL is set to: ${NOTIFICATION_EMAIL}" || echo "NOTIFICATION_EMAIL is missing"
-          echo "AWS Region: ${AWS_REGION}"
-          echo "Node version: $(node -v)"
-          echo "NPM version: $(npm -v)"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -75,7 +34,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install nodemailer
+          npm install @aws-sdk/client-ses
           sudo apt-get update && sudo apt-get install -y jq
 
       - name: Get workflow details
@@ -103,13 +62,12 @@ jobs:
               branch: run.data.head_branch,
               commit_message: run.data.head_commit.message,
               author: run.data.head_commit.author.name,
-              author_email: run.data.head_commit.author.email,
               failed_jobs: failureDetails,
               run_url: context.payload.workflow_run.html_url
             };
 
-      - name: Send critical notification
-        if: fromJson(steps.workflow-details.outputs.result).branch == 'main'
+      - name: Send notification
+        if: always()
         env:
           DETAILS: ${{ steps.workflow-details.outputs.result }}
         run: |
@@ -120,86 +78,54 @@ jobs:
           FAILED_JOBS=$(echo "$DETAILS_JSON" | jq -r '.failed_jobs')
           RUN_URL=$(echo "$DETAILS_JSON" | jq -r '.run_url')
 
-          BODY="⚠️ [DEV] Tests Failed on Main Branch
+          node -e '
+            const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
+            
+            async function sendEmail() {
+              const client = new SESClient({ region: "us-east-1" });
+              
+              const params = {
+                Source: "gucci@lagomo.xyz",
+                Destination: {
+                  ToAddresses: ["gucci@lagomo.xyz"],
+                },
+                Message: {
+                  Subject: {
+                    Data: `[DEV] Tests Failed - Lagomo (${process.env.BRANCH})`,
+                  },
+                  Body: {
+                    Text: {
+                      Data: `
+⚠️ Test Failure Alert
 
-          A test failure has occurred on the main branch.
+A test failure has occurred.
 
-          ## Failure Details
-          - Branch: $BRANCH
-          - Commit Message: $COMMIT
-          - Author: $AUTHOR
-          - Failed Jobs:
-          $FAILED_JOBS
+## Failure Details
+- Branch: ${process.env.BRANCH}
+- Commit Message: ${process.env.COMMIT}
+- Author: ${process.env.AUTHOR}
+- Failed Jobs:
+${process.env.FAILED_JOBS}
 
-          ## Action Required
-          Please investigate and fix the failing tests as soon as possible.
+## Action Required
+Please investigate and fix the failing tests.
 
-          View Workflow Run: $RUN_URL"
-
-          node scripts/send-notification.js \
-            "[DEV] Tests Failed on Main Branch - Lagomo" \
-            "$BODY" \
-            "${{ env.NOTIFICATION_EMAIL }}"
-
-      - name: Send coverage notification
-        if: contains(fromJson(steps.workflow-details.outputs.result).failed_jobs, 'Test Coverage:')
-        env:
-          DETAILS: ${{ steps.workflow-details.outputs.result }}
-        run: |
-          DETAILS_JSON='${{ steps.workflow-details.outputs.result }}'
-          BRANCH=$(echo "$DETAILS_JSON" | jq -r '.branch')
-          COMMIT=$(echo "$DETAILS_JSON" | jq -r '.commit_message')
-          AUTHOR=$(echo "$DETAILS_JSON" | jq -r '.author')
-          RUN_URL=$(echo "$DETAILS_JSON" | jq -r '.run_url')
-
-          BODY="⚠️ [DEV] Test Coverage Alert
-
-          The test coverage has fallen below the required threshold.
-
-          ## Details
-          - Branch: $BRANCH
-          - Commit Message: $COMMIT
-          - Author: $AUTHOR
-
-          ## Action Required
-          Please add more tests to improve coverage.
-
-          View Workflow Run: $RUN_URL"
-
-          node scripts/send-notification.js \
-            "[DEV] Test Coverage Below Threshold - Lagomo" \
-            "$BODY" \
-            "${{ env.NOTIFICATION_EMAIL }}"
-
-      - name: Send test notification
-        if: contains(fromJson(steps.workflow-details.outputs.result).failed_jobs, 'Test:')
-        env:
-          DETAILS: ${{ steps.workflow-details.outputs.result }}
-        run: |
-          DETAILS_JSON='${{ steps.workflow-details.outputs.result }}'
-          BRANCH=$(echo "$DETAILS_JSON" | jq -r '.branch')
-          COMMIT=$(echo "$DETAILS_JSON" | jq -r '.commit_message')
-          AUTHOR=$(echo "$DETAILS_JSON" | jq -r '.author')
-          FAILED_JOBS=$(echo "$DETAILS_JSON" | jq -r '.failed_jobs')
-          RUN_URL=$(echo "$DETAILS_JSON" | jq -r '.run_url')
-
-          BODY="⚠️ [DEV] Tests Failed
-
-          A test failure has occurred.
-
-          ## Failure Details
-          - Branch: $BRANCH
-          - Commit Message: $COMMIT
-          - Author: $AUTHOR
-          - Failed Jobs:
-          $FAILED_JOBS
-
-          ## Action Required
-          Please investigate and fix the failing tests as soon as possible.
-
-          View Workflow Run: $RUN_URL"
-
-          node scripts/send-notification.js \
-            "[DEV] Tests Failed - Lagomo" \
-            "$BODY" \
-            "${{ env.NOTIFICATION_EMAIL }}"
+View Workflow Run: ${process.env.RUN_URL}
+                      `,
+                    },
+                  },
+                },
+              };
+            
+              try {
+                const command = new SendEmailCommand(params);
+                const response = await client.send(command);
+                console.log("Email sent successfully:", response.MessageId);
+              } catch (error) {
+                console.error("Error sending email:", error);
+                process.exit(1);
+              }
+            }
+            
+            sendEmail();
+          '
