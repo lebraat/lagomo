@@ -9,9 +9,15 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+permissions:
+  contents: read
+  actions: read
+  checks: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    environment: development
     
     services:
       postgres:
