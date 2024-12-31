@@ -1,10 +1,10 @@
-const { SecretsManagerClient } = require('@aws-sdk/client-secrets-manager');
-const awsMonitor = require('../utils/aws-monitor');
+const { SecretsManagerClient } = require("@aws-sdk/client-secrets-manager");
+const awsMonitor = require("../utils/aws-monitor");
 
 class AwsError extends Error {
   constructor(message, originalError, service, operation) {
     super(message);
-    this.name = 'AwsError';
+    this.name = "AwsError";
     this.originalError = originalError;
     this.service = service;
     this.operation = operation;
@@ -13,7 +13,7 @@ class AwsError extends Error {
 }
 
 const getAwsConfig = () => ({
-  region: process.env.AWS_REGION || 'us-west-2',
+  region: process.env.AWS_REGION || "us-west-2",
   // In production, credentials are automatically loaded
   // In development, they come from aws-vault
 });
@@ -57,8 +57,8 @@ const getSecret = async (secretName) => {
       const response = await secretsClient.getSecretValue({ SecretId: secretName });
       return response.SecretString;
     },
-    'SecretsManager',
-    'getSecretValue'
+    "SecretsManager",
+    "getSecretValue"
   );
 };
 

@@ -1,8 +1,8 @@
-const jwt = require('jsonwebtoken');
-const { ethers } = require('ethers');
-const { User } = require('../models/User');
-const crypto = require('crypto');
-const secretsManager = require('../utils/secrets');
+const jwt = require("jsonwebtoken");
+const { ethers } = require("ethers");
+const { User } = require("../models/User");
+const crypto = require("crypto");
+const secretsManager = require("../utils/secrets");
 
 /**
  * Generate a random nonce for wallet signature
@@ -10,7 +10,7 @@ const secretsManager = require('../utils/secrets');
  * @returns {string} Random nonce
  */
 const generateNonce = (length = 32) => {
-  return crypto.randomBytes(length).toString('hex');
+  return crypto.randomBytes(length).toString("hex");
 };
 
 /**
@@ -27,10 +27,10 @@ const getClientIP = (req) => {
 
 async function getJWTSecret() {
   try {
-    const secret = await secretsManager.getSecret('/lagomo/development/secrets');
+    const secret = await secretsManager.getSecret("/lagomo/development/secrets");
     return secret.JWT_SECRET;
   } catch (error) {
-    console.error('Error fetching JWT secret, falling back to .env:', error);
+    console.error("Error fetching JWT secret, falling back to .env:", error);
     return process.env.JWT_SECRET;
   }
 }
@@ -46,7 +46,7 @@ exports.getNonce = async (req, res) => {
     const clientIP = getClientIP(req);
 
     if (!ethers.isAddress(walletAddress)) {
-      return res.status(400).json({ error: 'Invalid wallet address' });
+      return res.status(400).json({ error: "Invalid wallet address" });
     }
 
     // Check if user is locked out
@@ -74,8 +74,8 @@ exports.getNonce = async (req, res) => {
 
     res.json({ nonce, expiresAt });
   } catch (error) {
-    console.error('Error in getNonce:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error in getNonce:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -90,7 +90,7 @@ exports.verifySignature = async (req, res) => {
     const clientIP = getClientIP(req);
 
     if (!ethers.isAddress(walletAddress)) {
-      return res.status(400).json({ error: 'Invalid wallet address' });
+      return res.status(400).json({ error: "Invalid wallet address" });
     }
 
     const user = await User.findOne({ 
@@ -98,7 +98,7 @@ exports.verifySignature = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ error: "User not found" });
     }
 
     // Check if user is locked out
@@ -122,12 +122,12 @@ exports.verifySignature = async (req, res) => {
         user.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lockout
         await user.save();
         return res.status(429).json({ 
-          error: 'Too many failed attempts. Account locked for 15 minutes.' 
+          error: "Too many failed attempts. Account locked for 15 minutes." 
         });
       }
 
       await user.save();
-      return res.status(401).json({ error: 'Invalid signature' });
+      return res.status(401).json({ error: "Invalid signature" });
     }
 
     // Update user's nonce and last login
@@ -146,7 +146,7 @@ exports.verifySignature = async (req, res) => {
         wallet: user.walletAddress
       },
       secret,
-      { expiresIn: process.env.JWT_EXPIRATION || '24h' }
+      { expiresIn: process.env.JWT_EXPIRATION || "24h" }
     );
 
     res.json({
@@ -158,8 +158,8 @@ exports.verifySignature = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error in verifySignature:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error in verifySignature:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -171,17 +171,17 @@ exports.verifySignature = async (req, res) => {
 exports.refreshToken = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "No token provided" });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(" ")[1];
     const secret = await getJWTSecret();
     const decoded = jwt.verify(token, secret);
 
     const user = await User.findByPk(decoded.sub);
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ error: "User not found" });
     }
 
     // Generate new token
@@ -191,15 +191,15 @@ exports.refreshToken = async (req, res) => {
         wallet: user.walletAddress
       },
       secret,
-      { expiresIn: process.env.JWT_EXPIRATION || '24h' }
+      { expiresIn: process.env.JWT_EXPIRATION || "24h" }
     );
 
     res.json({ token: newToken });
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ error: "Invalid token" });
     }
-    console.error('Error in refreshToken:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error in refreshToken:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };

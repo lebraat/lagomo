@@ -1,5 +1,5 @@
-const { CloudWatchClient, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
-const { getAwsConfig } = require('../config/aws');
+const { CloudWatchClient, PutMetricDataCommand } = require("@aws-sdk/client-cloudwatch");
+const { getAwsConfig } = require("../config/aws");
 
 class AwsMonitor {
   constructor() {
@@ -7,7 +7,7 @@ class AwsMonitor {
       ...getAwsConfig(),
       maxAttempts: 3,
     });
-    this.namespace = 'Lagomo';
+    this.namespace = "Lagomo";
     this.errorBuffer = [];
     this.flushInterval = 60000; // 1 minute
 
@@ -20,7 +20,7 @@ class AwsMonitor {
       timestamp: new Date(),
       service,
       operation,
-      errorCode: error.code || 'Unknown',
+      errorCode: error.code || "Unknown",
       errorMessage: error.message,
       requestId: error.$metadata?.requestId,
     };
@@ -37,14 +37,14 @@ class AwsMonitor {
     if (this.errorBuffer.length === 0) return;
 
     const metrics = this.errorBuffer.map(error => ({
-      MetricName: 'AwsErrors',
+      MetricName: "AwsErrors",
       Timestamp: error.timestamp,
       Value: 1,
-      Unit: 'Count',
+      Unit: "Count",
       Dimensions: [
-        { Name: 'Service', Value: error.service },
-        { Name: 'Operation', Value: error.operation },
-        { Name: 'ErrorCode', Value: error.errorCode },
+        { Name: "Service", Value: error.service },
+        { Name: "Operation", Value: error.operation },
+        { Name: "ErrorCode", Value: error.errorCode },
       ],
     }));
 
@@ -57,7 +57,7 @@ class AwsMonitor {
       // Clear the buffer after successful flush
       this.errorBuffer = [];
     } catch (error) {
-      console.error('Failed to flush AWS metrics:', error);
+      console.error("Failed to flush AWS metrics:", error);
       // Keep the metrics in buffer to retry later
     }
   }
@@ -65,7 +65,7 @@ class AwsMonitor {
   startPeriodicFlush() {
     setInterval(() => {
       this.flushMetrics().catch(error => {
-        console.error('Periodic metric flush failed:', error);
+        console.error("Periodic metric flush failed:", error);
       });
     }, this.flushInterval);
   }

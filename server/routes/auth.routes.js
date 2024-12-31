@@ -1,7 +1,7 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const authController = require('../controllers/auth.controller');
-const rateLimit = require('express-rate-limit');
+const authController = require("../controllers/auth.controller");
+const rateLimit = require("express-rate-limit");
 
 // Rate limiting middleware
 const nonceLimit = rateLimit({
@@ -20,8 +20,8 @@ const refreshLimit = rateLimit({
 });
 
 // Auth routes
-router.get('/nonce', nonceLimit, authController.getNonce);
-router.post('/verify', verifyLimit, authController.verifySignature);
-router.post('/refresh', refreshLimit, authController.refreshToken);
+router.get("/nonce", nonceLimit, authController.getNonce);
+router.post("/verify", verifyLimit, authController.verifySignature);
+router.post("/refresh", refreshLimit, authController.refreshToken);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const { sequelize } = require('../models/User');
+const { sequelize } = require("../models/User");
 
 before(async () => {
   // Sync database in test mode

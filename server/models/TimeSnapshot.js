@@ -1,5 +1,5 @@
-const { Model, DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const { Model, DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
 
 class TimeSnapshot extends Model {}
 
@@ -13,8 +13,8 @@ TimeSnapshot.init({
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'Users',
-      key: 'id'
+      model: "Users",
+      key: "id"
     }
   },
   timestamp: {
@@ -29,7 +29,7 @@ TimeSnapshot.init({
       isValidSplit(value) {
         const total = Object.values(value).reduce((sum, percent) => sum + percent, 0);
         if (Math.abs(total - 100) > 0.01) { // Allow for small floating point differences
-          throw new Error('Modal splits must sum to 100%');
+          throw new Error("Modal splits must sum to 100%");
         }
       }
     }
@@ -40,7 +40,7 @@ TimeSnapshot.init({
   }
 }, {
   sequelize,
-  modelName: 'TimeSnapshot',
+  modelName: "TimeSnapshot",
   timestamps: true
 });
 

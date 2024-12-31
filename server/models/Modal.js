@@ -1,5 +1,5 @@
-const { Model, DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const { Model, DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
 
 class Modal extends Model {}
 
@@ -19,7 +19,7 @@ Modal.init({
   }
 }, {
   sequelize,
-  modelName: 'Modal',
+  modelName: "Modal",
   timestamps: true
 });
 

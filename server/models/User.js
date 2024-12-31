@@ -1,6 +1,6 @@
-const { Model, DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-const { encrypt, decrypt, hash } = require('../utils/encryption');
+const { Model, DataTypes } = require("sequelize");
+const sequelize = require("../config/database");
+const { encrypt, decrypt, hash } = require("../utils/encryption");
 
 class User extends Model {
   // Encrypt sensitive data before saving
@@ -49,7 +49,7 @@ User.init({
     validate: {
       isEthereumAddress(value) {
         if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
-          throw new Error('Invalid Ethereum address');
+          throw new Error("Invalid Ethereum address");
         }
       }
     }
@@ -79,12 +79,12 @@ User.init({
   }
 }, {
   sequelize,
-  modelName: 'User',
+  modelName: "User",
   timestamps: true,
   indexes: [
     {
       unique: true,
-      fields: ['walletAddressHash']
+      fields: ["walletAddressHash"]
     }
   ]
 });

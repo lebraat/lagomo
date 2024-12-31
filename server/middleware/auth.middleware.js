@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const { User } = require('../models/User');
+const jwt = require("jsonwebtoken");
+const { User } = require("../models/User");
 
 /**
  * Middleware to authenticate JWT tokens
@@ -10,16 +10,16 @@ const { User } = require('../models/User');
 exports.authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "No token provided" });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const user = await User.findByPk(decoded.sub);
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ error: "User not found" });
     }
 
     // Attach user to request object
@@ -27,7 +27,7 @@ exports.authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ error: "Invalid token" });
     }
     next(error);
   }
@@ -44,11 +44,11 @@ exports.validateWalletOwnership = (req, res, next) => {
   const walletAddress = req.params.walletAddress || req.body.walletAddress;
   
   if (!walletAddress) {
-    return res.status(400).json({ error: 'Wallet address is required' });
+    return res.status(400).json({ error: "Wallet address is required" });
   }
 
   if (req.user.walletAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-    return res.status(403).json({ error: 'Not authorized for this wallet' });
+    return res.status(403).json({ error: "Not authorized for this wallet" });
   }
 
   next();

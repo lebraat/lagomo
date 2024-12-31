@@ -1,4 +1,4 @@
-const secretsManager = require('../utils/secrets');
+const secretsManager = require("../utils/secrets");
 
 class Config {
   constructor() {
@@ -11,13 +11,13 @@ class Config {
 
     try {
       // Load secrets based on environment
-      const secretName = `/lagomo/${process.env.NODE_ENV || 'development'}/secrets`;
+      const secretName = `/lagomo/${process.env.NODE_ENV || "development"}/secrets`;
       this.secrets = await secretsManager.getSecret(secretName);
       this.initialized = true;
     } catch (error) {
-      console.error('Error initializing config:', error);
+      console.error("Error initializing config:", error);
       // In development, we can fall back to environment variables
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         this.secrets = secretsManager.getEnvironmentVariables();
         this.initialized = true;
       } else {
@@ -36,7 +36,7 @@ class Config {
       },
       jwt: {
         secret: this.secrets.JWT_SECRET,
-        expiresIn: process.env.JWT_EXPIRATION || '24h',
+        expiresIn: process.env.JWT_EXPIRATION || "24h",
       },
       encryption: {
         key: this.secrets.ENCRYPTION_KEY,

@@ -58,7 +58,7 @@ const getSecret = async (secretName) => {
  * @returns {Promise<object>} Object containing all necessary secrets
  */
 const initializeSecrets = async () => {
-  const environment = process.env.NODE_ENV || 'development';
+  const environment = process.env.NODE_ENV || "development";
   const basePath = `/lagomo/${environment}`;
 
   try {
@@ -76,7 +76,7 @@ const initializeSecrets = async () => {
       },
       jwt: {
         secret: jwtSecret.secret,
-        expiresIn: jwtSecret.expiresIn || '24h'
+        expiresIn: jwtSecret.expiresIn || "24h"
       },
       smtp: {
         host: smtpCreds.host,
@@ -92,7 +92,7 @@ const initializeSecrets = async () => {
       }
     };
   } catch (error) {
-    console.error('Error initializing secrets:', error);
+    console.error("Error initializing secrets:", error);
     throw error;
   }
 };
