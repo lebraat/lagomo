@@ -3,9 +3,7 @@ name: Test Suite
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  # Run tests every day at 2 AM UTC
+  # Keeping schedule for daily tests
   schedule:
     - cron: '0 2 * * *'
 
@@ -19,6 +17,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     environment: development
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+      id-token: write
     
     services:
       postgres:
