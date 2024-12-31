@@ -45,8 +45,7 @@ jobs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        role-to-assume: arn:aws:iam::266654255232:role/github-actions-ses-role
         aws-region: us-east-1
 
     - name: Use Node.js ${{ matrix.node-version }}
@@ -73,6 +72,15 @@ jobs:
       
     - name: Check for security vulnerabilities
       run: npm audit
+
+    # Upload workflow data for the notification workflow
+    - name: Upload workflow data
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: workflow-data
+        path: workflow-data.json
+        retention-days: 1
 
   e2e:
     needs: test
